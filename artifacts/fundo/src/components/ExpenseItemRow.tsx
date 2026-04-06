@@ -1,5 +1,6 @@
-import { Pencil, Trash2 } from "lucide-react";
-import { ExpenseItem, ItemStatus } from "@/context/FundoContext";
+import { useState, useRef } from "react";
+import { Pencil, Trash2, Receipt } from "lucide-react";
+import { ExpenseItem, ItemStatus, useFundo } from "@/context/FundoContext";
 import { formatPeso, calcActualTotal, calcEstimatedTotal } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,17 @@ interface ExpenseItemRowProps {
   onEdit: () => void;
   onDelete: () => void;
   onStatusChange: (status: ItemStatus) => void;
+  selected?: boolean;
+  onSelect?: (selected: boolean) => void;
+  showCheckbox?: boolean;
 }
 
-export function ExpenseItemRow({ item, onEdit, onDelete, onStatusChange }: ExpenseItemRowProps) {
+export function ExpenseItemRow({ item, envelopeId, subcategoryId, onEdit, onDelete, onStatusChange, selected, onSelect, showCheckbox }: ExpenseItemRowProps) {
+  const { updateItem } = useFundo();
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(item.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const estTotal = calcEstimatedTotal(item.quantity, item.estimatedUnitPrice);
   const actTotal = item.actualUnitPrice !== undefined ? calcActualTotal(item.quantity, item.actualUnitPrice) : null;
 
@@ -25,16 +34,71 @@ export function ExpenseItemRow({ item, onEdit, onDelete, onStatusChange }: Expen
     onStatusChange(next);
   }
 
+  function startEditName() {
+    setNameValue(item.name);
+    setEditingName(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  }
+
+  function commitName() {
+    const trimmed = nameValue.trim();
+    if (trimmed && trimmed !== item.name) {
+      updateItem(envelopeId, subcategoryId, item.id, { name: trimmed });
+    }
+    setEditingName(false);
+  }
+
+  function handleNameKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") commitName();
+    if (e.key === "Escape") { setEditingName(false); setNameValue(item.name); }
+  }
+
   return (
     <div
-      className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-3 items-center py-3 px-4 border-b last:border-b-0 border-border hover:bg-muted/40 transition-colors text-sm"
+      className={`grid gap-x-3 items-center py-3 px-4 border-b last:border-b-0 border-border hover:bg-muted/40 transition-colors text-sm ${showCheckbox ? "grid-cols-[auto_1fr_auto_auto_auto_auto]" : "grid-cols-[1fr_auto_auto_auto_auto]"}`}
       data-testid={`row-item-${item.id}`}
     >
+      {showCheckbox && (
+        <input
+          type="checkbox"
+          checked={selected ?? false}
+          onChange={(e) => onSelect?.(e.target.checked)}
+          className="w-4 h-4 accent-primary cursor-pointer"
+          data-testid={`checkbox-item-${item.id}`}
+        />
+      )}
+
       <div className="min-w-0">
-        <div className="font-medium truncate" data-testid={`text-item-name-${item.id}`}>{item.name}</div>
-        {item.notes && (
-          <div className="text-xs text-muted-foreground truncate">{item.notes}</div>
+        {editingName ? (
+          <input
+            ref={inputRef}
+            value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={handleNameKeyDown}
+            className="w-full font-medium bg-background border border-primary rounded px-1 py-0.5 text-sm outline-none"
+            data-testid={`input-inline-name-${item.id}`}
+          />
+        ) : (
+          <div
+            className="font-medium truncate cursor-text hover:text-primary transition-colors"
+            title="Click to edit name"
+            onClick={startEditName}
+            data-testid={`text-item-name-${item.id}`}
+          >
+            {item.name}
+          </div>
         )}
+        <div className="flex items-center gap-1.5 mt-0.5">
+          {item.receiptRef && (
+            <span className="flex items-center gap-0.5 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              <Receipt className="w-2.5 h-2.5" /> {item.receiptRef}
+            </span>
+          )}
+          {item.notes && (
+            <div className="text-xs text-muted-foreground truncate">{item.notes}</div>
+          )}
+        </div>
         <div className="text-xs text-muted-foreground mt-0.5">
           {item.quantity} &times; {formatPeso(item.estimatedUnitPrice)} est.
           {item.actualUnitPrice !== undefined && ` / ${formatPeso(item.actualUnitPrice)} actual`}

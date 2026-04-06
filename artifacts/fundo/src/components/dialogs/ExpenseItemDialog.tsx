@@ -23,6 +23,7 @@ const schema = z.object({
   estimatedUnitPrice: z.coerce.number().min(0, "Estimated price must be positive"),
   actualUnitPrice: z.coerce.number().min(0).optional(),
   status: z.enum(["Unordered", "Ordered", "Received", "Paid"]),
+  receiptRef: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -47,6 +48,7 @@ export function ExpenseItemDialog({ open, onClose, envelopeId, subcategoryId, it
       estimatedUnitPrice: item?.estimatedUnitPrice ?? 0,
       actualUnitPrice: item?.actualUnitPrice ?? undefined,
       status: item?.status ?? "Unordered",
+      receiptRef: item?.receiptRef ?? "",
       notes: item?.notes ?? "",
     },
   });
@@ -58,6 +60,7 @@ export function ExpenseItemDialog({ open, onClose, envelopeId, subcategoryId, it
       estimatedUnitPrice: values.estimatedUnitPrice,
       actualUnitPrice: values.actualUnitPrice || undefined,
       status: values.status,
+      receiptRef: values.receiptRef || undefined,
       notes: values.notes || undefined,
     };
     if (item) {
@@ -184,6 +187,20 @@ export function ExpenseItemDialog({ open, onClose, envelopeId, subcategoryId, it
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="receiptRef"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Receipt / Reference (optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. OR-001, Invoice #1234" {...field} data-testid="input-item-receipt" />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

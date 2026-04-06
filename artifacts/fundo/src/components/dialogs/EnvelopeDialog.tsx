@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Envelope, useFundo } from "@/context/FundoContext";
@@ -17,6 +17,7 @@ const schema = z.object({
   name: z.string().min(1, "Name is required"),
   totalBudget: z.coerce.number().min(0, "Budget must be positive"),
   eventDate: z.string().optional(),
+  tagsRaw: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -36,21 +37,33 @@ export function EnvelopeDialog({ open, onClose, envelope }: EnvelopeDialogProps)
       name: envelope?.name ?? "",
       totalBudget: envelope?.totalBudget ?? 0,
       eventDate: envelope?.eventDate ?? "",
+      tagsRaw: envelope?.tags?.join(", ") ?? "",
     },
   });
 
+  function parseTags(raw: string | undefined): string[] {
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+  }
+
   function onSubmit(values: FormValues) {
+    const tags = parseTags(values.tagsRaw);
     if (envelope) {
       updateEnvelope(envelope.id, {
         name: values.name,
         totalBudget: values.totalBudget,
         eventDate: values.eventDate || undefined,
+        tags,
       });
     } else {
       addEnvelope({
         name: values.name,
         totalBudget: values.totalBudget,
         eventDate: values.eventDate || undefined,
+        tags,
       });
     }
     form.reset();
@@ -105,6 +118,20 @@ export function EnvelopeDialog({ open, onClose, envelope }: EnvelopeDialogProps)
                   <FormControl>
                     <Input type="date" {...field} data-testid="input-envelope-date" />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="tagsRaw"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tags (optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. personal, events, household" {...field} data-testid="input-envelope-tags" />
+                  </FormControl>
+                  <FormDescription>Separate tags with commas</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
