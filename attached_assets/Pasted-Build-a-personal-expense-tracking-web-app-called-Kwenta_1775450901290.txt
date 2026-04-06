@@ -1,0 +1,62 @@
+Build a personal expense tracking web app called "Kwenta" (or any name I choose later) using React + Vite. The app should work fully in the browser with no backend required — use localStorage to persist data.
+
+---
+
+CORE CONCEPTS:
+
+1. ENVELOPES
+- An envelope is a top-level budget container (e.g., "July 30 Event", "Household Budget")
+- Each envelope has: name, total budget (in Philippine Pesos ₱), optional event/due date, and a list of subcategories
+- User can create, edit, and delete envelopes
+
+2. SUBCATEGORIES
+- Subcategories belong to an envelope and are user-defined (e.g., "Keychains", "Badges", "Water Bill")
+- Each subcategory has: name, optional allocated budget, and a list of expense items
+- User can create, edit, and delete subcategories within an envelope
+
+3. EXPENSE ITEMS
+- Each item under a subcategory includes:
+  • Item name
+  • Quantity
+  • Unit price (estimated and/or actual)
+  • Total cost (auto-calculated: quantity × unit price)
+  • Status: Unordered / Ordered / Received / Paid
+  • Optional notes (e.g., supplier name, remarks)
+- User can add, edit, delete, and update the status of items
+
+---
+
+FEATURES:
+
+- Real-time summary per envelope:
+  • Total budget
+  • Total estimated cost
+  • Total actual spent
+  • Remaining balance
+  • Per-subcategory breakdown with a visual progress bar
+- Warn the user (highlight in red or amber) when a subcategory or envelope is nearing or exceeding its budget
+- Estimated vs Actual cost comparison per item
+- Deadline countdown shown on envelopes that have an event date set
+- Item status tracker with color-coded badges (Unordered = gray, Ordered = blue, Received = amber, Paid = green)
+- Quick-add button for fast item logging
+- All monetary values displayed in Philippine Pesos (₱)
+- Data persists using localStorage so nothing is lost on page refresh
+
+---
+
+UI REQUIREMENTS:
+
+- Clean, modern design with a dark or neutral color scheme
+- Dashboard view showing all envelopes as cards with a summary of budget usage
+- Drill-down view: click an envelope → see subcategories → click a subcategory → see items
+- Progress bars showing budget usage per envelope and per subcategory
+- Mobile-responsive layout
+- Smooth transitions between views
+
+---
+
+TECH STACK:
+- React + Vite
+- Tailwind CSS for styling
+- localStorage for data persistence
+- No backend, no authentication required

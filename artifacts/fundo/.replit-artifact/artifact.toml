@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Fundo"
+version = "1.0.0"
+id = "artifacts/fundo"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22506
+
+[services.development]
+run = "pnpm --filter @workspace/fundo run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/fundo", "run", "build" ]
+publicDir = "artifacts/fundo/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22506"
+BASE_PATH = "/"
