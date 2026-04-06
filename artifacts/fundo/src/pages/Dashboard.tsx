@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
-import { Plus, Wallet, Moon, Sun, Search, SlidersHorizontal, Archive } from "lucide-react";
+import { Plus, Wallet, Moon, Sun, Search, SlidersHorizontal, Archive, Database } from "lucide-react";
 import { useFundo } from "@/context/FundoContext";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
+import { DashboardSummary } from "@/components/DashboardSummary";
 import { EnvelopeDialog } from "@/components/dialogs/EnvelopeDialog";
+import { BackupDialog } from "@/components/dialogs/BackupDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +20,7 @@ export default function Dashboard() {
   const { dark, toggle: toggleDark } = useDarkMode();
   const [createOpen, setCreateOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [backupOpen, setBackupOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("created");
   const [filter, setFilter] = useState<FilterKey>("active");
   const [search, setSearch] = useState("");
@@ -37,7 +40,7 @@ export default function Dashboard() {
       const totalEstimated = allItems.reduce((sum, item) => sum + calcEstimatedTotal(item.quantity, item.estimatedUnitPrice), 0);
       const totalActual = allItems.reduce((sum, item) => sum + calcActualTotal(item.quantity, item.actualUnitPrice), 0);
       const spend = totalActual > 0 ? totalActual : totalEstimated;
-      const status = getBudgetStatus(spend, e.totalBudget);
+      const status = getBudgetStatus(spend, e.totalBudget, e.warningThreshold ?? 80);
 
       if (search && !e.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (tagFilter && !e.tags?.includes(tagFilter)) return false;
@@ -95,7 +98,7 @@ export default function Dashboard() {
   const archivedCount = envelopes.filter((e) => e.archived).length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background print:hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -108,6 +111,9 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setBackupOpen(true)} title="Data management" data-testid="button-data-management">
+              <Database className="w-4 h-4" />
+            </Button>
             <Button variant="outline" size="icon" onClick={toggleDark} title={dark ? "Light mode" : "Dark mode"} data-testid="button-toggle-dark">
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
@@ -116,6 +122,8 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+
+        <DashboardSummary envelopes={envelopes} />
 
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
@@ -211,6 +219,7 @@ export default function Dashboard() {
       {editingEnvelope && (
         <EnvelopeDialog open={!!editId} onClose={() => setEditId(null)} envelope={editingEnvelope} />
       )}
+      <BackupDialog open={backupOpen} onClose={() => setBackupOpen(false)} />
     </div>
   );
 }

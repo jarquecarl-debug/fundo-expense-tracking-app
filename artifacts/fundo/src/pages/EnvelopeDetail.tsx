@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useParams } from "wouter";
-import { ArrowLeft, Calendar, Plus, Wallet, AlertTriangle, Download, History, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Calendar, Plus, Wallet, AlertTriangle, Download, History, ChevronDown, ChevronUp, Printer, FileText } from "lucide-react";
 import { useFundo } from "@/context/FundoContext";
 import { formatPeso, calcActualTotal, calcEstimatedTotal, getDaysUntil, getBudgetStatus } from "@/lib/format";
 import { BudgetProgressBar } from "@/components/BudgetProgressBar";
 import { SubcategorySection } from "@/components/SubcategorySection";
+import { SpendingChart } from "@/components/SpendingChart";
 import { SubcategoryDialog } from "@/components/dialogs/SubcategoryDialog";
 import { Button } from "@/components/ui/button";
 import { exportEnvelopeToCsv } from "@/lib/export";
@@ -22,9 +23,7 @@ export default function EnvelopeDetail() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-lg font-semibold mb-2">Envelope not found</h2>
-          <Link href="/">
-            <a className="text-primary hover:underline text-sm">Back to Dashboard</a>
-          </Link>
+          <Link href="/"><a className="text-primary hover:underline text-sm">Back to Dashboard</a></Link>
         </div>
       </div>
     );
@@ -35,11 +34,12 @@ export default function EnvelopeDetail() {
   const totalActual = allItems.reduce((sum, item) => sum + calcActualTotal(item.quantity, item.actualUnitPrice), 0);
   const effectiveSpend = totalActual > 0 ? totalActual : totalEstimated;
   const remaining = envelope.totalBudget - effectiveSpend;
-  const status = getBudgetStatus(effectiveSpend, envelope.totalBudget);
+  const status = getBudgetStatus(effectiveSpend, envelope.totalBudget, envelope.warningThreshold ?? 80);
 
   const paidItems = allItems.filter((i) => i.status === "Paid");
   const paidTotal = paidItems.reduce((sum, i) => sum + calcActualTotal(i.quantity, i.actualUnitPrice), 0);
   const unorderedCount = allItems.filter((i) => i.status === "Unordered").length;
+  const totalPayments = allItems.reduce((s, i) => s + (i.payments ?? []).reduce((ps, p) => ps + p.amount, 0), 0);
 
   const daysUntil = envelope.eventDate ? getDaysUntil(envelope.eventDate) : null;
 
@@ -57,8 +57,9 @@ export default function EnvelopeDetail() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <div className="mb-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 print:py-4">
+
+        <div className="print:hidden mb-6">
           <Link href="/">
             <a className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4" data-testid="link-back-dashboard">
               <ArrowLeft className="w-4 h-4" /> Back to Dashboard
@@ -94,11 +95,29 @@ export default function EnvelopeDetail() {
                 </div>
               )}
             </div>
-            <Button variant="outline" size="sm" onClick={() => exportEnvelopeToCsv(envelope)} data-testid="button-export-csv">
-              <Download className="w-4 h-4 mr-1.5" /> Export CSV
-            </Button>
+            <div className="flex gap-2 shrink-0">
+              <Button variant="outline" size="sm" onClick={() => exportEnvelopeToCsv(envelope)} data-testid="button-export-csv">
+                <Download className="w-4 h-4 mr-1.5" /> Export CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => window.print()} data-testid="button-print">
+                <Printer className="w-4 h-4 mr-1.5" /> Print
+              </Button>
+            </div>
           </div>
         </div>
+
+        <div className="hidden print:block mb-6">
+          <h1 className="text-2xl font-bold">{envelope.name}</h1>
+          {envelope.eventDate && <p className="text-sm text-muted-foreground">{new Date(envelope.eventDate).toLocaleDateString("en-PH", { dateStyle: "long" })}</p>}
+          <p className="text-xs text-muted-foreground">Printed {new Date().toLocaleDateString("en-PH", { dateStyle: "medium" })}</p>
+        </div>
+
+        {envelope.notes && (
+          <div className="rounded-xl border border-card-border bg-card p-4 mb-4 flex items-start gap-2">
+            <FileText className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+            <p className="text-sm text-foreground whitespace-pre-line">{envelope.notes}</p>
+          </div>
+        )}
 
         <div className={`rounded-xl border p-5 mb-6 bg-card ${status === "danger" ? "border-red-300 dark:border-red-800" : status === "warning" ? "border-amber-300 dark:border-amber-800" : "border-card-border"}`}>
           <div className="space-y-2 mb-4">
@@ -107,7 +126,7 @@ export default function EnvelopeDetail() {
                 <span>Estimated vs Budget</span>
                 <span>{envelope.totalBudget > 0 ? ((totalEstimated / envelope.totalBudget) * 100).toFixed(0) : 0}%</span>
               </div>
-              <BudgetProgressBar used={totalEstimated} total={envelope.totalBudget} height="h-2" />
+              <BudgetProgressBar used={totalEstimated} total={envelope.totalBudget} height="h-2" warningAt={envelope.warningThreshold} />
             </div>
             {totalActual > 0 && (
               <div>
@@ -115,7 +134,7 @@ export default function EnvelopeDetail() {
                   <span>Actual vs Budget</span>
                   <span className="text-primary">{envelope.totalBudget > 0 ? ((totalActual / envelope.totalBudget) * 100).toFixed(0) : 0}%</span>
                 </div>
-                <BudgetProgressBar used={totalActual} total={envelope.totalBudget} height="h-2" />
+                <BudgetProgressBar used={totalActual} total={envelope.totalBudget} height="h-2" warningAt={envelope.warningThreshold} />
               </div>
             )}
           </div>
@@ -143,7 +162,7 @@ export default function EnvelopeDetail() {
             </div>
           </div>
 
-          {(paidTotal > 0 || unorderedCount > 0) && (
+          {(paidTotal > 0 || unorderedCount > 0 || totalPayments > 0) && (
             <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-border text-sm">
               {paidTotal > 0 && (
                 <div className="flex items-center gap-1.5">
@@ -151,6 +170,13 @@ export default function EnvelopeDetail() {
                   <span className="text-muted-foreground">Paid:</span>
                   <span className="font-medium text-green-600 dark:text-green-400">{formatPeso(paidTotal)}</span>
                   <span className="text-muted-foreground text-xs">({paidItems.length} item{paidItems.length !== 1 ? "s" : ""})</span>
+                </div>
+              )}
+              {totalPayments > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span className="text-muted-foreground">Partial payments:</span>
+                  <span className="font-medium text-blue-600 dark:text-blue-400">{formatPeso(totalPayments)}</span>
                 </div>
               )}
               {unorderedCount > 0 && (
@@ -163,12 +189,14 @@ export default function EnvelopeDetail() {
           )}
         </div>
 
+        <SpendingChart envelope={envelope} />
+
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold">
             Categories
             <span className="ml-2 text-muted-foreground font-normal text-sm">({envelope.subcategories.length})</span>
           </h2>
-          <Button size="sm" onClick={() => setAddSubOpen(true)} data-testid="button-add-subcategory">
+          <Button size="sm" onClick={() => setAddSubOpen(true)} className="print:hidden" data-testid="button-add-subcategory">
             <Plus className="w-4 h-4 mr-1.5" /> Add Category
           </Button>
         </div>
@@ -189,13 +217,18 @@ export default function EnvelopeDetail() {
         ) : (
           <div className="space-y-3">
             {envelope.subcategories.map((sub) => (
-              <SubcategorySection key={sub.id} envelopeId={envelope.id} subcategory={sub} />
+              <SubcategorySection
+                key={sub.id}
+                envelopeId={envelope.id}
+                subcategory={sub}
+                allSubcategories={envelope.subcategories}
+              />
             ))}
           </div>
         )}
 
         {(envelope.history?.length ?? 0) > 0 && (
-          <div className="mt-8 border border-border rounded-xl overflow-hidden">
+          <div className="mt-8 border border-border rounded-xl overflow-hidden print:hidden">
             <button
               className="w-full flex items-center justify-between px-4 py-3 bg-card hover:bg-accent/50 transition-colors text-sm font-medium"
               onClick={() => setHistoryOpen((p) => !p)}

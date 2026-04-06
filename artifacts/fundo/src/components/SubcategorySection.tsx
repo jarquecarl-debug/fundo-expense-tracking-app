@@ -15,9 +15,10 @@ const statusOptions: ItemStatus[] = ["Unordered", "Ordered", "Received", "Paid"]
 interface SubcategorySectionProps {
   envelopeId: string;
   subcategory: Subcategory;
+  allSubcategories: Subcategory[];
 }
 
-export function SubcategorySection({ envelopeId, subcategory }: SubcategorySectionProps) {
+export function SubcategorySection({ envelopeId, subcategory, allSubcategories }: SubcategorySectionProps) {
   const { deleteSubcategory, deleteItem, updateItem, restoreItem, restoreSubcategory, bulkUpdateStatus } = useFundo();
   const [expanded, setExpanded] = useState(true);
   const [editSubOpen, setEditSubOpen] = useState(false);
@@ -148,13 +149,6 @@ export function SubcategorySection({ envelopeId, subcategory }: SubcategorySecti
                   <CheckSquare className="w-3.5 h-3.5" />
                   {selectedIds.size === subcategory.items.length && subcategory.items.length > 0 ? "Deselect all" : "Select all"}
                 </button>
-                <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-3 text-xs font-medium text-muted-foreground">
-                  <div></div>
-                  <div className="text-right w-24">Estimated</div>
-                  <div className="text-right w-24">Actual</div>
-                  <div className="w-20">Status</div>
-                  <div className="w-16">Actions</div>
-                </div>
               </div>
 
               {showCheckboxes && (
@@ -162,21 +156,13 @@ export function SubcategorySection({ envelopeId, subcategory }: SubcategorySecti
                   <span className="text-sm font-medium">{selectedIds.size} selected</span>
                   <span className="text-muted-foreground text-sm">Set to:</span>
                   <Select value={bulkStatus} onValueChange={(v) => setBulkStatus(v as ItemStatus)}>
-                    <SelectTrigger className="h-7 w-32 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {statusOptions.map((s) => (
-                        <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
-                      ))}
+                      {statusOptions.map((s) => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button size="sm" className="h-7 text-xs" onClick={applyBulkStatus} data-testid="button-bulk-apply">
-                    Apply
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
-                    Cancel
-                  </Button>
+                  <Button size="sm" className="h-7 text-xs" onClick={applyBulkStatus} data-testid="button-bulk-apply">Apply</Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>Cancel</Button>
                 </div>
               )}
 
@@ -186,6 +172,7 @@ export function SubcategorySection({ envelopeId, subcategory }: SubcategorySecti
                   item={item}
                   envelopeId={envelopeId}
                   subcategoryId={subcategory.id}
+                  allSubcategories={allSubcategories}
                   onEdit={() => setEditItem(item.id)}
                   onDelete={() => handleDeleteItem(item)}
                   onStatusChange={(status) => handleStatusChange(item.id, status)}

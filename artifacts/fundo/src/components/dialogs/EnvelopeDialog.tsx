@@ -11,13 +11,16 @@ import {
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Envelope, useFundo } from "@/context/FundoContext";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
   totalBudget: z.coerce.number().min(0, "Budget must be positive"),
   eventDate: z.string().optional(),
+  notes: z.string().optional(),
   tagsRaw: z.string().optional(),
+  warningThreshold: z.coerce.number().min(50).max(100),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -37,34 +40,31 @@ export function EnvelopeDialog({ open, onClose, envelope }: EnvelopeDialogProps)
       name: envelope?.name ?? "",
       totalBudget: envelope?.totalBudget ?? 0,
       eventDate: envelope?.eventDate ?? "",
+      notes: envelope?.notes ?? "",
       tagsRaw: envelope?.tags?.join(", ") ?? "",
+      warningThreshold: envelope?.warningThreshold ?? 80,
     },
   });
 
   function parseTags(raw: string | undefined): string[] {
     if (!raw) return [];
-    return raw
-      .split(",")
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
+    return raw.split(",").map((t) => t.trim()).filter((t) => t.length > 0);
   }
 
   function onSubmit(values: FormValues) {
     const tags = parseTags(values.tagsRaw);
+    const payload = {
+      name: values.name,
+      totalBudget: values.totalBudget,
+      eventDate: values.eventDate || undefined,
+      notes: values.notes || undefined,
+      tags,
+      warningThreshold: values.warningThreshold,
+    };
     if (envelope) {
-      updateEnvelope(envelope.id, {
-        name: values.name,
-        totalBudget: values.totalBudget,
-        eventDate: values.eventDate || undefined,
-        tags,
-      });
+      updateEnvelope(envelope.id, payload);
     } else {
-      addEnvelope({
-        name: values.name,
-        totalBudget: values.totalBudget,
-        eventDate: values.eventDate || undefined,
-        tags,
-      });
+      addEnvelope(payload);
     }
     form.reset();
     onClose();
@@ -75,9 +75,11 @@ export function EnvelopeDialog({ open, onClose, envelope }: EnvelopeDialogProps)
     onClose();
   }
 
+  const threshold = form.watch("warningThreshold");
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{envelope ? "Edit Envelope" : "New Envelope"}</DialogTitle>
         </DialogHeader>
@@ -124,6 +126,19 @@ export function EnvelopeDialog({ open, onClose, envelope }: EnvelopeDialogProps)
             />
             <FormField
               control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes / Memo (optional)</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Contact info, reminders, context..." {...field} rows={3} data-testid="input-envelope-notes" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="tagsRaw"
               render={({ field }) => (
                 <FormItem>
@@ -132,6 +147,28 @@ export function EnvelopeDialog({ open, onClose, envelope }: EnvelopeDialogProps)
                     <Input placeholder="e.g. personal, events, household" {...field} data-testid="input-envelope-tags" />
                   </FormControl>
                   <FormDescription>Separate tags with commas</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="warningThreshold"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Budget Warning at {threshold}%</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="range"
+                      min="50"
+                      max="99"
+                      step="1"
+                      {...field}
+                      className="w-full accent-primary cursor-pointer"
+                      data-testid="input-envelope-threshold"
+                    />
+                  </FormControl>
+                  <FormDescription>Show a warning when spending reaches {threshold}% of budget (default 80%)</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

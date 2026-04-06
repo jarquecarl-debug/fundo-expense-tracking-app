@@ -5,11 +5,12 @@ interface BudgetProgressBarProps {
   total: number;
   showLabel?: boolean;
   height?: string;
+  warningAt?: number;
 }
 
-export function BudgetProgressBar({ used, total, showLabel = false, height = "h-2" }: BudgetProgressBarProps) {
+export function BudgetProgressBar({ used, total, showLabel = false, height = "h-2", warningAt = 80 }: BudgetProgressBarProps) {
   const pct = total > 0 ? Math.min((used / total) * 100, 100) : 0;
-  const status = getBudgetStatus(used, total);
+  const status = getBudgetStatus(used, total, warningAt);
 
   const barColor =
     status === "danger"

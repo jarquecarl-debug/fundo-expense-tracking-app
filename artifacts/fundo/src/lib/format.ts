@@ -19,10 +19,10 @@ export function getDaysUntil(dateStr: string): number {
   return Math.round((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export function getBudgetStatus(used: number, total: number): "ok" | "warning" | "danger" {
+export function getBudgetStatus(used: number, total: number, warningThreshold = 80): "ok" | "warning" | "danger" {
   if (total <= 0) return "ok";
-  const pct = used / total;
-  if (pct >= 1) return "danger";
-  if (pct >= 0.8) return "warning";
+  const pct = (used / total) * 100;
+  if (pct >= 100) return "danger";
+  if (pct >= warningThreshold) return "warning";
   return "ok";
 }

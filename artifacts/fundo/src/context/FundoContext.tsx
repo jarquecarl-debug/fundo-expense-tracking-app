@@ -9,6 +9,13 @@ export interface HistoryEvent {
   timestamp: string;
 }
 
+export interface Payment {
+  id: string;
+  amount: number;
+  date: string;
+  note?: string;
+}
+
 export interface ExpenseItem {
   id: string;
   name: string;
@@ -17,6 +24,9 @@ export interface ExpenseItem {
   actualUnitPrice?: number;
   notes?: string;
   receiptRef?: string;
+  vendor?: string;
+  dueDate?: string;
+  payments: Payment[];
   status: ItemStatus;
 }
 
@@ -32,6 +42,8 @@ export interface Envelope {
   name: string;
   totalBudget: number;
   eventDate?: string;
+  notes?: string;
+  warningThreshold: number;
   subcategories: Subcategory[];
   createdAt: string;
   archived: boolean;
@@ -56,9 +68,18 @@ interface FundoContextValue {
   deleteItem: (envelopeId: string, subId: string, itemId: string) => void;
   restoreItem: (envelopeId: string, subId: string, item: ExpenseItem) => void;
   bulkUpdateStatus: (envelopeId: string, subId: string, itemIds: string[], status: ItemStatus) => void;
+  moveItem: (envelopeId: string, fromSubId: string, itemId: string, toSubId: string) => void;
+  replaceAllEnvelopes: (envelopes: Envelope[]) => void;
 }
 
 const STORAGE_KEY = "fundo_envelopes";
+
+function normalizeItem(item: Partial<ExpenseItem> & { id: string; name: string; quantity: number; estimatedUnitPrice: number; status: ItemStatus }): ExpenseItem {
+  return {
+    payments: [],
+    ...item,
+  };
+}
 
 function loadEnvelopes(): Envelope[] {
   try {
@@ -69,7 +90,13 @@ function loadEnvelopes(): Envelope[] {
       archived: false,
       tags: [],
       history: [],
+      notes: "",
+      warningThreshold: 80,
       ...e,
+      subcategories: e.subcategories.map((s) => ({
+        ...s,
+        items: s.items.map((i) => normalizeItem(i as ExpenseItem)),
+      })),
     }));
   } catch {
     return [];
@@ -160,7 +187,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
         subcategories: original.subcategories.map((s) => ({
           ...s,
           id: crypto.randomUUID(),
-          items: s.items.map((i) => ({ ...i, id: crypto.randomUUID(), status: "Unordered" as ItemStatus })),
+          items: s.items.map((i) => ({ ...i, id: crypto.randomUUID(), status: "Unordered" as ItemStatus, payments: [] })),
         })),
       };
       persist([...envelopes, duplicate]);
@@ -222,7 +249,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback(
     (envelopeId: string, subId: string, data: Omit<ExpenseItem, "id">) => {
-      const item: ExpenseItem = { ...data, id: crypto.randomUUID() };
+      const item: ExpenseItem = { payments: [], ...data, id: crypto.randomUUID() };
       const updated = envelopes.map((e) =>
         e.id === envelopeId
           ? {
@@ -331,6 +358,39 @@ export function FundoProvider({ children }: { children: ReactNode }) {
     [envelopes, persist]
   );
 
+  const moveItem = useCallback(
+    (envelopeId: string, fromSubId: string, itemId: string, toSubId: string) => {
+      const envelope = envelopes.find((e) => e.id === envelopeId);
+      const fromSub = envelope?.subcategories.find((s) => s.id === fromSubId);
+      const item = fromSub?.items.find((i) => i.id === itemId);
+      const toSub = envelope?.subcategories.find((s) => s.id === toSubId);
+      if (!item || !toSub) return;
+      const updated = envelopes.map((e) =>
+        e.id === envelopeId
+          ? {
+              ...e,
+              subcategories: e.subcategories.map((s) => {
+                if (s.id === fromSubId) return { ...s, items: s.items.filter((i) => i.id !== itemId) };
+                if (s.id === toSubId) return { ...s, items: [...s.items, item] };
+                return s;
+              }),
+            }
+          : e
+      );
+      const withHistory = addHistoryToEnvelope(
+        updated, envelopeId,
+        makeEvent("item_moved", `"${item.name}" moved to "${toSub.name}"`)
+      );
+      persist(withHistory);
+    },
+    [envelopes, persist]
+  );
+
+  const replaceAllEnvelopes = useCallback(
+    (next: Envelope[]) => persist(next),
+    [persist]
+  );
+
   return (
     <FundoContext.Provider
       value={{
@@ -350,6 +410,8 @@ export function FundoProvider({ children }: { children: ReactNode }) {
         deleteItem,
         restoreItem,
         bulkUpdateStatus,
+        moveItem,
+        replaceAllEnvelopes,
       }}
     >
       {children}
