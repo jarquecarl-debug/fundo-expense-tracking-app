@@ -208,21 +208,26 @@ export function ExpenseItemDialog({ open, onClose, envelopeId, subcategoryId, it
               <FormField control={form.control} name="priority" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Priority</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === "none" ? undefined : v)}
+                    value={field.value ?? "none"}
+                  >
                     <FormControl>
                       <SelectTrigger data-testid="select-item-priority">
                         <SelectValue placeholder="None">
-                          {field.value && (
+                          {field.value ? (
                             <span className="flex items-center gap-1.5">
                               <Flag className={`w-3 h-3 ${priorityColors[field.value as Priority]}`} />
                               {field.value.charAt(0).toUpperCase() + field.value.slice(1)}
                             </span>
+                          ) : (
+                            <span className="text-muted-foreground">None</span>
                           )}
                         </SelectValue>
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       <SelectItem value="low"><span className="flex items-center gap-1.5"><Flag className="w-3 h-3 text-blue-500" /> Low</span></SelectItem>
                       <SelectItem value="medium"><span className="flex items-center gap-1.5"><Flag className="w-3 h-3 text-amber-500" /> Medium</span></SelectItem>
                       <SelectItem value="high"><span className="flex items-center gap-1.5"><Flag className="w-3 h-3 text-red-500" /> High</span></SelectItem>
