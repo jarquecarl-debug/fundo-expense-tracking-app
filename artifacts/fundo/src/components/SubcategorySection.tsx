@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Pencil, Plus, Trash2, CheckSquare } from "lucide-react";
-import { Subcategory, ItemStatus, ExpenseItem, useFundo } from "@/context/FundoContext";
+import { ChevronDown, ChevronRight, Pencil, Plus, Trash2, CheckSquare, ArrowUpDown } from "lucide-react";
+import { Subcategory, ItemStatus, ItemPriority, ExpenseItem, useFundo } from "@/context/FundoContext";
 import { formatPeso, calcActualTotal, calcEstimatedTotal } from "@/lib/format";
 import { BudgetProgressBar } from "@/components/BudgetProgressBar";
 import { ExpenseItemRow } from "@/components/ExpenseItemRow";
@@ -11,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 
 const statusOptions: ItemStatus[] = ["Unordered", "Ordered", "Received", "Paid"];
+const priorityOrder: Record<ItemPriority | "none", number> = { high: 0, medium: 1, low: 2, none: 3 };
+
+type SortMode = "default" | "priority" | "status" | "name";
 
 interface SubcategorySectionProps {
   envelopeId: string;
@@ -26,6 +29,7 @@ export function SubcategorySection({ envelopeId, subcategory, allSubcategories }
   const [editItem, setEditItem] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<ItemStatus>("Paid");
+  const [sortMode, setSortMode] = useState<SortMode>("default");
 
   const totalEstimated = subcategory.items.reduce(
     (sum, item) => sum + calcEstimatedTotal(item.quantity, item.estimatedUnitPrice), 0
@@ -36,6 +40,17 @@ export function SubcategorySection({ envelopeId, subcategory, allSubcategories }
   const effectiveSpend = totalActual > 0 ? totalActual : totalEstimated;
   const allocated = subcategory.allocatedBudget;
   const showCheckboxes = selectedIds.size > 0;
+
+  const sortedItems = [...subcategory.items].sort((a, b) => {
+    if (sortMode === "priority") {
+      const pa = priorityOrder[a.priority ?? "none"];
+      const pb = priorityOrder[b.priority ?? "none"];
+      return pa - pb;
+    }
+    if (sortMode === "status") return statusOptions.indexOf(a.status) - statusOptions.indexOf(b.status);
+    if (sortMode === "name") return a.name.localeCompare(b.name);
+    return 0;
+  });
 
   function handleDeleteSub() {
     const copy = { ...subcategory };
@@ -62,18 +77,14 @@ export function SubcategorySection({ envelopeId, subcategory, allSubcategories }
   function toggleSelect(itemId: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(itemId);
-      else next.delete(itemId);
+      if (checked) next.add(itemId); else next.delete(itemId);
       return next;
     });
   }
 
   function toggleSelectAll() {
-    if (selectedIds.size === subcategory.items.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(subcategory.items.map((i) => i.id)));
-    }
+    if (selectedIds.size === subcategory.items.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(subcategory.items.map((i) => i.id)));
   }
 
   function applyBulkStatus() {
@@ -98,9 +109,7 @@ export function SubcategorySection({ envelopeId, subcategory, allSubcategories }
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-medium text-sm truncate" data-testid={`text-subcategory-name-${subcategory.id}`}>{subcategory.name}</span>
-            <span className="text-xs text-muted-foreground">
-              ({subcategory.items.length} {subcategory.items.length === 1 ? "item" : "items"})
-            </span>
+            <span className="text-xs text-muted-foreground">({subcategory.items.length} {subcategory.items.length === 1 ? "item" : "items"})</span>
           </div>
           {allocated !== undefined && (
             <div className="mt-1.5 pr-8">
@@ -149,6 +158,20 @@ export function SubcategorySection({ envelopeId, subcategory, allSubcategories }
                   <CheckSquare className="w-3.5 h-3.5" />
                   {selectedIds.size === subcategory.items.length && subcategory.items.length > 0 ? "Deselect all" : "Select all"}
                 </button>
+                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                  <Select value={sortMode} onValueChange={(v) => setSortMode(v as SortMode)}>
+                    <SelectTrigger className="h-6 w-28 text-xs border-0 shadow-none bg-transparent">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default" className="text-xs">Default</SelectItem>
+                      <SelectItem value="priority" className="text-xs">By Priority</SelectItem>
+                      <SelectItem value="status" className="text-xs">By Status</SelectItem>
+                      <SelectItem value="name" className="text-xs">By Name</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {showCheckboxes && (
@@ -166,7 +189,7 @@ export function SubcategorySection({ envelopeId, subcategory, allSubcategories }
                 </div>
               )}
 
-              {subcategory.items.map((item) => (
+              {sortedItems.map((item) => (
                 <ExpenseItemRow
                   key={item.id}
                   item={item}

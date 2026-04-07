@@ -4,6 +4,8 @@ import { useFundo } from "@/context/FundoContext";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { EnvelopeCard } from "@/components/EnvelopeCard";
 import { DashboardSummary } from "@/components/DashboardSummary";
+import { OverviewChart } from "@/components/OverviewChart";
+import { QuickAddDialog } from "@/components/QuickAddDialog";
 import { EnvelopeDialog } from "@/components/dialogs/EnvelopeDialog";
 import { BackupDialog } from "@/components/dialogs/BackupDialog";
 import { Button } from "@/components/ui/button";
@@ -87,11 +89,7 @@ export default function Dashboard() {
   }
 
   const filterLabels: Record<FilterKey, string> = {
-    all: "All",
-    active: "Active",
-    archived: "Archived",
-    "over-budget": "Over Budget",
-    warning: "At Risk",
+    all: "All", active: "Active", archived: "Archived", "over-budget": "Over Budget", warning: "At Risk",
   };
 
   const activeCount = envelopes.filter((e) => !e.archived).length;
@@ -124,6 +122,7 @@ export default function Dashboard() {
         </div>
 
         <DashboardSummary envelopes={envelopes} />
+        <OverviewChart envelopes={envelopes} />
 
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
@@ -158,11 +157,7 @@ export default function Dashboard() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                filter === f
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
-              } ${f === "over-budget" && filter !== f ? "text-red-500" : ""} ${f === "warning" && filter !== f ? "text-amber-600 dark:text-amber-400" : ""}`}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${filter === f ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"} ${f === "over-budget" && filter !== f ? "text-red-500" : ""} ${f === "warning" && filter !== f ? "text-amber-600 dark:text-amber-400" : ""}`}
               data-testid={`filter-${f}`}
             >
               {filterLabels[f]}
@@ -172,11 +167,7 @@ export default function Dashboard() {
             <button
               key={tag}
               onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                tagFilter === tag
-                  ? "bg-primary/80 text-primary-foreground"
-                  : "bg-primary/10 text-primary hover:bg-primary/20"
-              }`}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${tagFilter === tag ? "bg-primary/80 text-primary-foreground" : "bg-primary/10 text-primary hover:bg-primary/20"}`}
               data-testid={`tag-filter-${tag}`}
             >
               {tag}
@@ -215,6 +206,7 @@ export default function Dashboard() {
         )}
       </div>
 
+      <QuickAddDialog />
       <EnvelopeDialog open={createOpen} onClose={() => setCreateOpen(false)} />
       {editingEnvelope && (
         <EnvelopeDialog open={!!editId} onClose={() => setEditId(null)} envelope={editingEnvelope} />

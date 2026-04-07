@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { ExpenseItem, ItemStatus, Payment, useFundo } from "@/context/FundoContext";
 import { formatPeso } from "@/lib/format";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Flag } from "lucide-react";
 
 const statuses: ItemStatus[] = ["Unordered", "Ordered", "Received", "Paid"];
+type Priority = "low" | "medium" | "high";
 
 const schema = z.object({
   name: z.string().min(1, "Item name is required"),
@@ -22,6 +23,7 @@ const schema = z.object({
   estimatedUnitPrice: z.coerce.number().min(0, "Estimated price must be positive"),
   actualUnitPrice: z.coerce.number().min(0).optional(),
   status: z.enum(["Unordered", "Ordered", "Received", "Paid"]),
+  priority: z.enum(["low", "medium", "high"]).optional(),
   vendor: z.string().optional(),
   dueDate: z.string().optional(),
   receiptRef: z.string().optional(),
@@ -38,6 +40,12 @@ interface ExpenseItemDialogProps {
   item?: ExpenseItem;
 }
 
+const priorityColors: Record<Priority, string> = {
+  low: "text-blue-500",
+  medium: "text-amber-500",
+  high: "text-red-500",
+};
+
 export function ExpenseItemDialog({ open, onClose, envelopeId, subcategoryId, item }: ExpenseItemDialogProps) {
   const { addItem, updateItem } = useFundo();
   const [payments, setPayments] = useState<Payment[]>(item?.payments ?? []);
@@ -53,6 +61,7 @@ export function ExpenseItemDialog({ open, onClose, envelopeId, subcategoryId, it
       estimatedUnitPrice: item?.estimatedUnitPrice ?? 0,
       actualUnitPrice: item?.actualUnitPrice ?? undefined,
       status: item?.status ?? "Unordered",
+      priority: item?.priority ?? undefined,
       vendor: item?.vendor ?? "",
       dueDate: item?.dueDate ?? "",
       receiptRef: item?.receiptRef ?? "",
@@ -67,6 +76,7 @@ export function ExpenseItemDialog({ open, onClose, envelopeId, subcategoryId, it
       estimatedUnitPrice: values.estimatedUnitPrice,
       actualUnitPrice: values.actualUnitPrice || undefined,
       status: values.status,
+      priority: values.priority,
       vendor: values.vendor || undefined,
       dueDate: values.dueDate || undefined,
       receiptRef: values.receiptRef || undefined,
@@ -180,20 +190,48 @@ export function ExpenseItemDialog({ open, onClose, envelopeId, subcategoryId, it
               )} />
             </div>
 
-            <FormField control={form.control} name="status" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger data-testid="select-item-status"><SelectValue placeholder="Select status" /></SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
+            <div className="grid grid-cols-2 gap-3">
+              <FormField control={form.control} name="status" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-item-status"><SelectValue placeholder="Select status" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="priority" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Priority</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-item-priority">
+                        <SelectValue placeholder="None">
+                          {field.value && (
+                            <span className="flex items-center gap-1.5">
+                              <Flag className={`w-3 h-3 ${priorityColors[field.value as Priority]}`} />
+                              {field.value.charAt(0).toUpperCase() + field.value.slice(1)}
+                            </span>
+                          )}
+                        </SelectValue>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="low"><span className="flex items-center gap-1.5"><Flag className="w-3 h-3 text-blue-500" /> Low</span></SelectItem>
+                      <SelectItem value="medium"><span className="flex items-center gap-1.5"><Flag className="w-3 h-3 text-amber-500" /> Medium</span></SelectItem>
+                      <SelectItem value="high"><span className="flex items-center gap-1.5"><Flag className="w-3 h-3 text-red-500" /> High</span></SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
 
             <FormField control={form.control} name="receiptRef" render={({ field }) => (
               <FormItem>
@@ -213,7 +251,7 @@ export function ExpenseItemDialog({ open, onClose, envelopeId, subcategoryId, it
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <FormLabel>Partial Payments</FormLabel>
+                <label className="text-sm font-medium leading-none">Partial Payments</label>
                 {totalPaid > 0 && <span className="text-xs text-green-600 dark:text-green-400 font-medium">{formatPeso(totalPaid)} paid so far</span>}
               </div>
               {payments.length > 0 && (
@@ -223,7 +261,7 @@ export function ExpenseItemDialog({ open, onClose, envelopeId, subcategoryId, it
                       <span className="flex-1 font-medium text-green-600 dark:text-green-400">{formatPeso(p.amount)}</span>
                       <span className="text-muted-foreground text-xs">{p.date}</span>
                       {p.note && <span className="text-muted-foreground text-xs truncate max-w-24">{p.note}</span>}
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removePayment(p.id)}>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" type="button" onClick={() => removePayment(p.id)}>
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>

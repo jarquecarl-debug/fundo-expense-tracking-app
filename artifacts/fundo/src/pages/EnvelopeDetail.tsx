@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Link, useParams } from "wouter";
-import { ArrowLeft, Calendar, Plus, Wallet, AlertTriangle, Download, History, ChevronDown, ChevronUp, Printer, FileText } from "lucide-react";
+import { ArrowLeft, Calendar, Plus, Wallet, AlertTriangle, Download, History, ChevronDown, ChevronUp, Printer, FileText, Share2 } from "lucide-react";
 import { useFundo } from "@/context/FundoContext";
 import { formatPeso, calcActualTotal, calcEstimatedTotal, getDaysUntil, getBudgetStatus } from "@/lib/format";
 import { BudgetProgressBar } from "@/components/BudgetProgressBar";
 import { SubcategorySection } from "@/components/SubcategorySection";
 import { SpendingChart } from "@/components/SpendingChart";
+import { BudgetBreakdownChart } from "@/components/BudgetBreakdownChart";
 import { SubcategoryDialog } from "@/components/dialogs/SubcategoryDialog";
 import { Button } from "@/components/ui/button";
 import { exportEnvelopeToCsv } from "@/lib/export";
+import { copyShareUrl } from "@/lib/share";
+import { toast } from "sonner";
 
 export default function EnvelopeDetail() {
   const { envelopeId } = useParams<{ envelopeId: string }>();
@@ -23,7 +26,7 @@ export default function EnvelopeDetail() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-lg font-semibold mb-2">Envelope not found</h2>
-          <Link href="/"><a className="text-primary hover:underline text-sm">Back to Dashboard</a></Link>
+          <Link href="/" className="text-primary hover:underline text-sm">Back to Dashboard</Link>
         </div>
       </div>
     );
@@ -55,18 +58,21 @@ export default function EnvelopeDetail() {
     return d.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
   }
 
+  function handleShare() {
+    copyShareUrl(envelope);
+    toast.success("Share link copied to clipboard!");
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 print:py-4">
 
         <div className="print:hidden mb-6">
-          <Link href="/">
-            <a className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4" data-testid="link-back-dashboard">
-              <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-            </a>
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4" data-testid="link-back-dashboard">
+            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
           </Link>
 
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Wallet className="w-5 h-5 text-primary" />
@@ -95,7 +101,10 @@ export default function EnvelopeDetail() {
                 </div>
               )}
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2 flex-wrap shrink-0">
+              <Button variant="outline" size="sm" onClick={handleShare} data-testid="button-share">
+                <Share2 className="w-4 h-4 mr-1.5" /> Share
+              </Button>
               <Button variant="outline" size="sm" onClick={() => exportEnvelopeToCsv(envelope)} data-testid="button-export-csv">
                 <Download className="w-4 h-4 mr-1.5" /> Export CSV
               </Button>
@@ -189,7 +198,10 @@ export default function EnvelopeDetail() {
           )}
         </div>
 
-        <SpendingChart envelope={envelope} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <SpendingChart envelope={envelope} />
+          <BudgetBreakdownChart envelope={envelope} />
+        </div>
 
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold">

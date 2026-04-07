@@ -20,13 +20,15 @@ export function EnvelopeCard({ envelope, onEdit, onDelete }: EnvelopeCardProps) 
   const totalActual = allItems.reduce((sum, item) => sum + calcActualTotal(item.quantity, item.actualUnitPrice), 0);
   const effectiveSpend = totalActual > 0 ? totalActual : totalEstimated;
   const remaining = envelope.totalBudget - effectiveSpend;
-  const status = getBudgetStatus(effectiveSpend, envelope.totalBudget);
+  const status = getBudgetStatus(effectiveSpend, envelope.totalBudget, envelope.warningThreshold ?? 80);
 
   const daysUntil = envelope.eventDate ? getDaysUntil(envelope.eventDate) : null;
   const unorderedCount = allItems.filter((i) => i.status === "Unordered").length;
   const paidTotal = allItems
     .filter((i) => i.status === "Paid")
     .reduce((sum, i) => sum + calcActualTotal(i.quantity, i.actualUnitPrice), 0);
+
+  const highPriorityCount = allItems.filter((i) => i.priority === "high" && i.status !== "Paid").length;
 
   function handleDuplicate() {
     duplicateEnvelope(envelope.id);
@@ -101,7 +103,7 @@ export function EnvelopeCard({ envelope, onEdit, onDelete }: EnvelopeCardProps) 
       </div>
 
       <div className="space-y-1">
-        <BudgetProgressBar used={effectiveSpend} total={envelope.totalBudget} showLabel height="h-2.5" />
+        <BudgetProgressBar used={effectiveSpend} total={envelope.totalBudget} showLabel height="h-2.5" warningAt={envelope.warningThreshold} />
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
@@ -129,20 +131,24 @@ export function EnvelopeCard({ envelope, onEdit, onDelete }: EnvelopeCardProps) 
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{envelope.subcategories.length} {envelope.subcategories.length === 1 ? "category" : "categories"} &middot; {allItems.length} {allItems.length === 1 ? "item" : "items"}</span>
-        {unorderedCount > 0 && (
-          <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
-            {unorderedCount} unordered
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {highPriorityCount > 0 && (
+            <span className="text-red-500 font-medium">{highPriorityCount} high priority</span>
+          )}
+          {unorderedCount > 0 && (
+            <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+              {unorderedCount} unordered
+            </span>
+          )}
+        </div>
       </div>
 
-      <Link href={`/envelope/${envelope.id}`}>
-        <a
-          data-testid={`link-envelope-${envelope.id}`}
-          className="flex items-center justify-center gap-1 w-full py-2 rounded-lg bg-muted hover:bg-accent text-sm font-medium text-foreground transition-colors"
-        >
-          View Details <ChevronRight className="w-4 h-4" />
-        </a>
+      <Link
+        href={`/envelope/${envelope.id}`}
+        data-testid={`link-envelope-${envelope.id}`}
+        className="flex items-center justify-center gap-1 w-full py-2 rounded-lg bg-muted hover:bg-accent text-sm font-medium text-foreground transition-colors"
+      >
+        View Details <ChevronRight className="w-4 h-4" />
       </Link>
     </div>
   );

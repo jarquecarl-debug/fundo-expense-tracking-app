@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
 export type ItemStatus = "Unordered" | "Ordered" | "Received" | "Paid";
+export type ItemPriority = "low" | "medium" | "high";
 
 export interface HistoryEvent {
   id: string;
@@ -26,6 +27,7 @@ export interface ExpenseItem {
   receiptRef?: string;
   vendor?: string;
   dueDate?: string;
+  priority?: ItemPriority;
   payments: Payment[];
   status: ItemStatus;
 }
@@ -75,10 +77,7 @@ interface FundoContextValue {
 const STORAGE_KEY = "fundo_envelopes";
 
 function normalizeItem(item: Partial<ExpenseItem> & { id: string; name: string; quantity: number; estimatedUnitPrice: number; status: ItemStatus }): ExpenseItem {
-  return {
-    payments: [],
-    ...item,
-  };
+  return { payments: [], ...item };
 }
 
 function loadEnvelopes(): Envelope[] {
@@ -122,9 +121,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addHistoryToEnvelope = (envs: Envelope[], envelopeId: string, event: HistoryEvent): Envelope[] =>
-    envs.map((e) =>
-      e.id === envelopeId ? { ...e, history: [event, ...e.history].slice(0, 50) } : e
-    );
+    envs.map((e) => e.id === envelopeId ? { ...e, history: [event, ...e.history].slice(0, 50) } : e);
 
   const addEnvelope = useCallback(
     (data: Omit<Envelope, "id" | "subcategories" | "createdAt" | "archived" | "history">) => {
@@ -164,10 +161,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
   const archiveEnvelope = useCallback(
     (id: string, archived: boolean) => {
       const updated = envelopes.map((e) => (e.id === id ? { ...e, archived } : e));
-      const withHistory = addHistoryToEnvelope(
-        updated, id,
-        makeEvent("archive_changed", archived ? "Envelope archived" : "Envelope restored from archive")
-      );
+      const withHistory = addHistoryToEnvelope(updated, id, makeEvent("archive_changed", archived ? "Envelope archived" : "Envelope restored from archive"));
       persist(withHistory);
     },
     [envelopes, persist]
@@ -198,9 +192,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
   const addSubcategory = useCallback(
     (envelopeId: string, data: Omit<Subcategory, "id" | "items">) => {
       const sub: Subcategory = { ...data, id: crypto.randomUUID(), items: [] };
-      const updated = envelopes.map((e) =>
-        e.id === envelopeId ? { ...e, subcategories: [...e.subcategories, sub] } : e
-      );
+      const updated = envelopes.map((e) => e.id === envelopeId ? { ...e, subcategories: [...e.subcategories, sub] } : e);
       const withHistory = addHistoryToEnvelope(updated, envelopeId, makeEvent("subcategory_added", `Category "${data.name}" added`));
       persist(withHistory);
       return sub;
@@ -210,13 +202,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
 
   const updateSubcategory = useCallback(
     (envelopeId: string, subId: string, data: Partial<Omit<Subcategory, "id" | "items">>) => {
-      persist(
-        envelopes.map((e) =>
-          e.id === envelopeId
-            ? { ...e, subcategories: e.subcategories.map((s) => (s.id === subId ? { ...s, ...data } : s)) }
-            : e
-        )
-      );
+      persist(envelopes.map((e) => e.id === envelopeId ? { ...e, subcategories: e.subcategories.map((s) => s.id === subId ? { ...s, ...data } : s) } : e));
     },
     [envelopes, persist]
   );
@@ -225,11 +211,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
     (envelopeId: string, subId: string) => {
       const envelope = envelopes.find((e) => e.id === envelopeId);
       const sub = envelope?.subcategories.find((s) => s.id === subId);
-      const updated = envelopes.map((e) =>
-        e.id === envelopeId
-          ? { ...e, subcategories: e.subcategories.filter((s) => s.id !== subId) }
-          : e
-      );
+      const updated = envelopes.map((e) => e.id === envelopeId ? { ...e, subcategories: e.subcategories.filter((s) => s.id !== subId) } : e);
       const withHistory = addHistoryToEnvelope(updated, envelopeId, makeEvent("subcategory_deleted", `Category "${sub?.name ?? "?"}" deleted`));
       persist(withHistory);
     },
@@ -238,11 +220,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
 
   const restoreSubcategory = useCallback(
     (envelopeId: string, sub: Subcategory) => {
-      persist(
-        envelopes.map((e) =>
-          e.id === envelopeId ? { ...e, subcategories: [...e.subcategories, sub] } : e
-        )
-      );
+      persist(envelopes.map((e) => e.id === envelopeId ? { ...e, subcategories: [...e.subcategories, sub] } : e));
     },
     [envelopes, persist]
   );
@@ -252,12 +230,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
       const item: ExpenseItem = { payments: [], ...data, id: crypto.randomUUID() };
       const updated = envelopes.map((e) =>
         e.id === envelopeId
-          ? {
-              ...e,
-              subcategories: e.subcategories.map((s) =>
-                s.id === subId ? { ...s, items: [...s.items, item] } : s
-              ),
-            }
+          ? { ...e, subcategories: e.subcategories.map((s) => s.id === subId ? { ...s, items: [...s.items, item] } : s) }
           : e
       );
       const withHistory = addHistoryToEnvelope(updated, envelopeId, makeEvent("item_added", `Item "${data.name}" added`));
@@ -274,14 +247,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
       const item = sub?.items.find((i) => i.id === itemId);
       const updated = envelopes.map((e) =>
         e.id === envelopeId
-          ? {
-              ...e,
-              subcategories: e.subcategories.map((s) =>
-                s.id === subId
-                  ? { ...s, items: s.items.map((i) => (i.id === itemId ? { ...i, ...data } : i)) }
-                  : s
-              ),
-            }
+          ? { ...e, subcategories: e.subcategories.map((s) => s.id === subId ? { ...s, items: s.items.map((i) => i.id === itemId ? { ...i, ...data } : i) } : s) }
           : e
       );
       const events: HistoryEvent[] = [];
@@ -291,9 +257,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
         events.push(makeEvent("item_updated", `"${item.name}" updated`));
       }
       let result = updated;
-      for (const ev of events) {
-        result = addHistoryToEnvelope(result, envelopeId, ev);
-      }
+      for (const ev of events) result = addHistoryToEnvelope(result, envelopeId, ev);
       persist(result);
     },
     [envelopes, persist]
@@ -306,12 +270,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
       const item = sub?.items.find((i) => i.id === itemId);
       const updated = envelopes.map((e) =>
         e.id === envelopeId
-          ? {
-              ...e,
-              subcategories: e.subcategories.map((s) =>
-                s.id === subId ? { ...s, items: s.items.filter((i) => i.id !== itemId) } : s
-              ),
-            }
+          ? { ...e, subcategories: e.subcategories.map((s) => s.id === subId ? { ...s, items: s.items.filter((i) => i.id !== itemId) } : s) }
           : e
       );
       const withHistory = addHistoryToEnvelope(updated, envelopeId, makeEvent("item_deleted", `Item "${item?.name ?? "?"}" deleted`));
@@ -322,18 +281,11 @@ export function FundoProvider({ children }: { children: ReactNode }) {
 
   const restoreItem = useCallback(
     (envelopeId: string, subId: string, item: ExpenseItem) => {
-      persist(
-        envelopes.map((e) =>
-          e.id === envelopeId
-            ? {
-                ...e,
-                subcategories: e.subcategories.map((s) =>
-                  s.id === subId ? { ...s, items: [...s.items, item] } : s
-                ),
-              }
-            : e
-        )
-      );
+      persist(envelopes.map((e) =>
+        e.id === envelopeId
+          ? { ...e, subcategories: e.subcategories.map((s) => s.id === subId ? { ...s, items: [...s.items, item] } : s) }
+          : e
+      ));
     },
     [envelopes, persist]
   );
@@ -342,14 +294,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
     (envelopeId: string, subId: string, itemIds: string[], status: ItemStatus) => {
       const updated = envelopes.map((e) =>
         e.id === envelopeId
-          ? {
-              ...e,
-              subcategories: e.subcategories.map((s) =>
-                s.id === subId
-                  ? { ...s, items: s.items.map((i) => (itemIds.includes(i.id) ? { ...i, status } : i)) }
-                  : s
-              ),
-            }
+          ? { ...e, subcategories: e.subcategories.map((s) => s.id === subId ? { ...s, items: s.items.map((i) => itemIds.includes(i.id) ? { ...i, status } : i) } : s) }
           : e
       );
       const withHistory = addHistoryToEnvelope(updated, envelopeId, makeEvent("bulk_status", `${itemIds.length} item${itemIds.length !== 1 ? "s" : ""} set to ${status}`));
@@ -377,10 +322,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
             }
           : e
       );
-      const withHistory = addHistoryToEnvelope(
-        updated, envelopeId,
-        makeEvent("item_moved", `"${item.name}" moved to "${toSub.name}"`)
-      );
+      const withHistory = addHistoryToEnvelope(updated, envelopeId, makeEvent("item_moved", `"${item.name}" moved to "${toSub.name}"`));
       persist(withHistory);
     },
     [envelopes, persist]
@@ -392,28 +334,12 @@ export function FundoProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <FundoContext.Provider
-      value={{
-        envelopes,
-        addEnvelope,
-        updateEnvelope,
-        deleteEnvelope,
-        restoreEnvelope,
-        archiveEnvelope,
-        duplicateEnvelope,
-        addSubcategory,
-        updateSubcategory,
-        deleteSubcategory,
-        restoreSubcategory,
-        addItem,
-        updateItem,
-        deleteItem,
-        restoreItem,
-        bulkUpdateStatus,
-        moveItem,
-        replaceAllEnvelopes,
-      }}
-    >
+    <FundoContext.Provider value={{
+      envelopes, addEnvelope, updateEnvelope, deleteEnvelope, restoreEnvelope,
+      archiveEnvelope, duplicateEnvelope, addSubcategory, updateSubcategory,
+      deleteSubcategory, restoreSubcategory, addItem, updateItem, deleteItem,
+      restoreItem, bulkUpdateStatus, moveItem, replaceAllEnvelopes,
+    }}>
       {children}
     </FundoContext.Provider>
   );

@@ -1,12 +1,18 @@
 import { useState, useRef } from "react";
-import { Pencil, Trash2, Receipt, Building2, CalendarClock, MoveRight } from "lucide-react";
-import { ExpenseItem, ItemStatus, Subcategory, useFundo } from "@/context/FundoContext";
+import { Pencil, Trash2, Receipt, Building2, CalendarClock, MoveRight, Flag } from "lucide-react";
+import { ExpenseItem, ItemStatus, ItemPriority, Subcategory, useFundo } from "@/context/FundoContext";
 import { formatPeso, calcActualTotal, calcEstimatedTotal, getDaysUntil } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const statusOrder: ItemStatus[] = ["Unordered", "Ordered", "Received", "Paid"];
+
+const priorityColor: Record<ItemPriority, string> = {
+  low: "text-blue-500",
+  medium: "text-amber-500",
+  high: "text-red-500",
+};
 
 interface ExpenseItemRowProps {
   item: ExpenseItem;
@@ -86,26 +92,31 @@ export function ExpenseItemRow({
       )}
 
       <div className="min-w-0">
-        {editingName ? (
-          <input
-            ref={inputRef}
-            value={nameValue}
-            onChange={(e) => setNameValue(e.target.value)}
-            onBlur={commitName}
-            onKeyDown={handleNameKeyDown}
-            className="w-full font-medium bg-background border border-primary rounded px-1 py-0.5 text-sm outline-none"
-            data-testid={`input-inline-name-${item.id}`}
-          />
-        ) : (
-          <div
-            className="font-medium truncate cursor-text hover:text-primary transition-colors"
-            title="Click to edit name"
-            onClick={startEditName}
-            data-testid={`text-item-name-${item.id}`}
-          >
-            {item.name}
-          </div>
-        )}
+        <div className="flex items-center gap-1.5">
+          {item.priority && (
+            <Flag className={`w-3 h-3 shrink-0 ${priorityColor[item.priority]}`} title={`Priority: ${item.priority}`} />
+          )}
+          {editingName ? (
+            <input
+              ref={inputRef}
+              value={nameValue}
+              onChange={(e) => setNameValue(e.target.value)}
+              onBlur={commitName}
+              onKeyDown={handleNameKeyDown}
+              className="flex-1 font-medium bg-background border border-primary rounded px-1 py-0.5 text-sm outline-none"
+              data-testid={`input-inline-name-${item.id}`}
+            />
+          ) : (
+            <div
+              className="font-medium truncate cursor-text hover:text-primary transition-colors"
+              title="Click to edit name"
+              onClick={startEditName}
+              data-testid={`text-item-name-${item.id}`}
+            >
+              {item.name}
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
           {item.vendor && (

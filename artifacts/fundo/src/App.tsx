@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { FundoProvider } from "@/context/FundoContext";
 import Dashboard from "@/pages/Dashboard";
 import EnvelopeDetail from "@/pages/EnvelopeDetail";
+import SharedView from "@/pages/SharedView";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -15,6 +16,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/envelope/:envelopeId" component={EnvelopeDetail} />
+      <Route path="/shared" component={SharedView} />
       <Route component={NotFound} />
     </Switch>
   );
