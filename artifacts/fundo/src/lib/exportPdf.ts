@@ -6,7 +6,10 @@ export async function exportEnvelopeToPdf(envelope: Envelope): Promise<void> {
   const element = (document.getElementById("envelope-pdf-root") ??
     document.querySelector("main") ??
     document.body) as HTMLElement;
-  await captureToPdf(element, envelope.name);
+  
+  // Use the inner container to avoid outer margin offsets
+  const inner = element.querySelector(".max-w-4xl") as HTMLElement ?? element;
+  await captureToPdf(inner, envelope.name);
 }
 
 async function captureToPdf(element: HTMLElement, filename: string): Promise<void> {
