@@ -17,11 +17,13 @@ async function captureToPdf(element: HTMLElement, filename: string): Promise<voi
   const dataUrl = await toPng(element, {
     cacheBust: true,
     pixelRatio: 2,
-    width: element.scrollWidth,
+    width: Math.max(element.scrollWidth, element.offsetWidth, 900),
     height: element.scrollHeight,
     style: {
       overflow: "visible",
       transform: "none",
+      maxWidth: "none",
+      width: "900px",
     },
     filter: (el) => !el.classList?.contains("print:hidden"),
   });
