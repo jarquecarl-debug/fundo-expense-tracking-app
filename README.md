@@ -2,7 +2,7 @@
 
 > A personal expense tracking web app built around the **envelope budgeting method** — organize your spending into envelopes, track estimates vs actuals, and stay on top of recurring expenses.
 
-**Status:** Actively improving · Deployment coming soon
+**Status:** Actively improving
 
 ---
 
