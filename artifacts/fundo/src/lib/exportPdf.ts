@@ -10,11 +10,19 @@ export async function exportEnvelopeToPdf(envelope: Envelope): Promise<void> {
 }
 
 async function captureToPdf(element: HTMLElement, filename: string): Promise<void> {
+  // Temporarily expand to full scroll size
+  const originalOverflow = element.style.overflow;
+  element.style.overflow = "visible";
+
   const dataUrl = await toPng(element, {
     cacheBust: true,
     pixelRatio: 2,
     width: element.scrollWidth,
     height: element.scrollHeight,
+    style: {
+      overflow: "visible",
+      transform: "none",
+    },
     filter: (el) => !el.classList?.contains("print:hidden"),
   });
 
