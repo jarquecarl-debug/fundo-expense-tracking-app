@@ -1,4 +1,4 @@
-# Fundo — Envelope Expense Tracker
+  # Fundo — Envelope Expense Tracker
 
 > A personal expense tracking web app built around the **envelope budgeting method** — organize your spending into envelopes, track estimates vs actuals, and stay on top of recurring expenses.
 
@@ -95,7 +95,7 @@ Open `http://localhost:5173` in your browser.
 
 ## Roadmap
 
-- [ ] Deploy to Netlify
+- [x] Deploy to Netlify
 - [ ] Cloud sync / user accounts
 - [ ] Mobile app version
 - [ ] Notification reminders for recurring items
