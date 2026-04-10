@@ -3,16 +3,18 @@ import { toPng } from "html-to-image";
 import { Envelope } from "@/context/FundoContext";
 
 export async function exportEnvelopeToPdf(envelope: Envelope): Promise<void> {
-  const element = document.getElementById("envelope-pdf-root") 
-    ?? document.querySelector("main") as HTMLElement 
-    ?? document.body;
-  await captureToPdf(element as HTMLElement, envelope.name);
+  const element = (document.getElementById("envelope-pdf-root") ??
+    document.querySelector("main") ??
+    document.body) as HTMLElement;
+  await captureToPdf(element, envelope.name);
 }
 
 async function captureToPdf(element: HTMLElement, filename: string): Promise<void> {
   const dataUrl = await toPng(element, {
     cacheBust: true,
     pixelRatio: 2,
+    width: element.scrollWidth,
+    height: element.scrollHeight,
     filter: (el) => !el.classList?.contains("print:hidden"),
   });
 
@@ -25,19 +27,38 @@ async function captureToPdf(element: HTMLElement, filename: string): Promise<voi
   const pageH = pdf.internal.pageSize.getHeight();
   const margin = 10;
   const usableW = pageW - margin * 2;
-  const imgH = (img.naturalHeight * usableW) / img.naturalWidth;
+  const usableH = pageH - margin * 2;
 
-  let remainingH = imgH;
-  let srcYmm = 0;
+  // Scale image to fit page width
+  const scale = usableW / img.naturalWidth;
+  const totalImgH = img.naturalHeight * scale; // total height in mm
 
-  while (remainingH > 0) {
-    const sliceH = Math.min(remainingH, pageH - margin * 2);
-    if (srcYmm > 0) pdf.addPage();
-    pdf.addImage(dataUrl, "PNG", margin, margin, usableW, imgH, "", "FAST", 0);
-    srcYmm += sliceH;
-    remainingH -= sliceH;
+  // How many px per page (in image coordinates)
+  const pageHeightInPx = usableH / scale;
+  const totalPages = Math.ceil(img.naturalHeight / pageHeightInPx);
+
+  for (let page = 0; page < totalPages; page++) {
+    if (page > 0) pdf.addPage();
+
+    const srcY = page * pageHeightInPx;
+    const srcH = Math.min(pageHeightInPx, img.naturalHeight - srcY);
+
+    // Create a slice canvas
+    const sliceCanvas = document.createElement("canvas");
+    sliceCanvas.width = img.naturalWidth;
+    sliceCanvas.height = srcH;
+    const ctx = sliceCanvas.getContext("2d")!;
+    ctx.drawImage(img, 0, srcY, img.naturalWidth, srcH, 0, 0, img.naturalWidth, srcH);
+
+    const sliceData = sliceCanvas.toDataURL("image/png");
+    const sliceH = srcH * scale;
+    pdf.addImage(sliceData, "PNG", margin, margin, usableW, sliceH);
   }
 
-  const safeFilename = filename.replace(/[^a-z0-9\s-]/gi, "").trim().replace(/\s+/g, "-").toLowerCase();
+  const safeFilename = filename
+    .replace(/[^a-z0-9\s-]/gi, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .toLowerCase();
   pdf.save(`${safeFilename}-fundo.pdf`);
 }
