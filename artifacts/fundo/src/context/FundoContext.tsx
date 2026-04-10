@@ -88,19 +88,15 @@ function loadEnvelopes(): Envelope[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Envelope[];
     return parsed.map((e) => ({
-      archived: false,
-      tags: [],
-      history: [],
-      notes: "",
-      warningThreshold: 80,
-      ...e,
-      subcategories: e.subcategories.map((s) => ({
-        ...s,
-        items: s.items.map((i) => normalizeItem(i as ExpenseItem)),
-      })),
-    }));
-  } catch {
-    return [];
+        ...{ archived: false, tags: [], history: [], notes: "", warningThreshold: 80 },
+        ...e,
+        subcategories: e.subcategories.map((s) => ({
+          ...s,
+          items: s.items.map((i) => normalizeItem(i as ExpenseItem)),
+        })),
+      }));
+        } catch {
+          return [];
   }
 }
 
@@ -229,7 +225,7 @@ export function FundoProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback(
     (envelopeId: string, subId: string, data: Omit<ExpenseItem, "id">) => {
-      const item: ExpenseItem = { payments: [], ...data, id: crypto.randomUUID() };
+      const item: ExpenseItem = { ...data, id: crypto.randomUUID() };
       const updated = envelopes.map((e) =>
         e.id === envelopeId
           ? { ...e, subcategories: e.subcategories.map((s) => s.id === subId ? { ...s, items: [...s.items, item] } : s) }
