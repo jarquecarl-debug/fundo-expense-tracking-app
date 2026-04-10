@@ -65,7 +65,8 @@ async function captureToPdf(element: HTMLElement, filename: string): Promise<voi
 
     const sliceData = sliceCanvas.toDataURL("image/png");
     const sliceH = srcH * scale;
-    pdf.addImage(sliceData, "PNG", margin, margin, usableW, sliceH);
+    const xPos = (pageW - usableW) / 2;
+pdf.addImage(sliceData, "PNG", xPos, margin, usableW, sliceH);
   }
 
   const safeFilename = filename
