@@ -20,13 +20,10 @@ async function captureToPdf(element: HTMLElement, filename: string): Promise<voi
   const dataUrl = await toPng(element, {
     cacheBust: true,
     pixelRatio: 2,
-   width: Math.max(element.scrollWidth, element.offsetWidth, 1200),
-    height: element.scrollHeight,
     style: {
       overflow: "visible",
       transform: "none",
       maxWidth: "none",
-       width: "1200px",
     },
     filter: (el) => !el.classList?.contains("print:hidden"),
   });
@@ -66,7 +63,7 @@ async function captureToPdf(element: HTMLElement, filename: string): Promise<voi
     const sliceData = sliceCanvas.toDataURL("image/png");
     const sliceH = srcH * scale;
     const xPos = (pageW - usableW) / 2;
-pdf.addImage(sliceData, "PNG", xPos, margin, usableW, sliceH);
+    pdf.addImage(sliceData, "PNG", xPos, margin, usableW, sliceH);
   }
 
   const safeFilename = filename
