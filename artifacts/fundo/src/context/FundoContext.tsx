@@ -30,7 +30,9 @@ export interface ExpenseItem {
   priority?: ItemPriority;
   payments: Payment[];
   status: ItemStatus;
+  recurring?: boolean;
 }
+
 
 export interface Subcategory {
   id: string;

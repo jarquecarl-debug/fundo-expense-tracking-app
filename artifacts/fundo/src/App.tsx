@@ -8,10 +8,12 @@ import Dashboard from "@/pages/Dashboard";
 import EnvelopeDetail from "@/pages/EnvelopeDetail";
 import SharedView from "@/pages/SharedView";
 import NotFound from "@/pages/not-found";
+import { useRecurringReset } from "@/hooks/useRecurringReset";
 
 const queryClient = new QueryClient();
 
 function Router() {
+  useRecurringReset();
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
