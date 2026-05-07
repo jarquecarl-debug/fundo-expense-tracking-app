@@ -3,7 +3,6 @@
 A personal expense tracking web app built around the **envelope budgeting method** — organize spending into envelopes, track estimates vs actuals, and stay on top of recurring expenses.
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-fundo--expense--tracking--app.netlify.app-00C7B7?style=flat-square&logo=netlify&logoColor=white)](https://fundo-expense-tracking-app.netlify.app)
-[![GitHub](https://img.shields.io/badge/GitHub-jarquecarl-181717?style=flat-square&logo=github)](https://github.com/jarquecarl/fundo-expense-tracking-app)
 ![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
